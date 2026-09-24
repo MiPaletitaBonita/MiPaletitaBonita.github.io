@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no"
+    >
+
+    <title>Para mi princesita 🎂💞</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: black;
+        }
+
+        body {
+            position: relative;
+            cursor: pointer;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            object-fit: contain;
+
+            background: black;
+
+            user-select: none;
+            -webkit-user-select: none;
+
+            pointer-events: none;
+
+            transition: opacity 0.35s ease;
+        }
+
+        #videoA {
+            z-index: 2;
+            opacity: 1;
+        }
+
+        #videoB {
+            z-index: 1;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <video
+        id="videoA"
+        muted
+        playsinline
+        preload="auto"
+    ></video>
+
+    <video
+        id="videoB"
+        muted
+        playsinline
+        preload="auto"
+    ></video>
+
+    <audio
+        id="musica"
+        src="musica.mp3"
+        loop
+        preload="auto"
+    ></audio>
+
+    <script>
+
+        const videos = [
+            "videos/01.mp4",
+            "videos/02.mp4",
+            "videos/03.mp4",
+            "videos/04.mp4",
+            "videos/05.mp4",
+            "videos/06.mp4",
+            "videos/07.mp4",
+            "videos/08.mp4",
+            "videos/09.mp4",
+            "videos/10.mp4",
+            "videos/11.mp4",
+            "videos/12.mp4"
+        ];
+
+
+        const musica =
+            document.getElementById("musica");
+
+        let visible =
+            document.getElementById("videoA");
+
+        let precarga =
+            document.getElementById("videoB");
+
+
+        let indice = 0;
+        let iniciado = false;
+        let terminado = false;
+        let cambiando = false;
+        let finalizado = false;
+
+
+        // =========================
+        // CARGAR PRIMER VIDEO
+        // =========================
+
+        visible.src = videos[0];
+        visible.load();
+
+
+        // =========================
+        // PRECARGAR SIGUIENTE
+        // =========================
+
+        function prepararSiguiente() {
+
+            const siguiente = indice + 1;
+
+            if (siguiente >= videos.length) {
+                return;
+            }
+
+            precarga.pause();
+
+            precarga.removeAttribute("src");
+            precarga.load();
+
+            precarga.src = videos[siguiente];
+            precarga.preload = "auto";
+            precarga.load();
+
+        }
+
+
+        // =========================
+        // CUANDO TERMINA VIDEO
+        // =========================
+
+        function alTerminar() {
+
+            terminado = true;
+
+            if (indice === videos.length - 1) {
+                finalizado = true;
+            }
+
+        }
+
+
+        visible.addEventListener(
+            "ended",
+            alTerminar
+        );
+
+
+        // =========================
+        // CUANDO CARGA EL PRIMERO
+        // =========================
+
+        visible.addEventListener(
+            "loadeddata",
+            () => {
+
+                prepararSiguiente();
+
+            },
+            { once: true }
+        );
+
+
+        // =========================
+        // CLICK / TOQUE
+        // =========================
+
+        document.addEventListener(
+            "click",
+            async () => {
+
+
+                // Ya terminó el último video
+                if (finalizado) {
+                    return;
+                }
+
+
+                // Evitar varios clicks rápidos
+                if (cambiando) {
+                    return;
+                }
+
+
+                // =====================
+                // PRIMER CLICK
+                // =====================
+
+                if (!iniciado) {
+
+                    iniciado = true;
+                    terminado = false;
+
+
+                    try {
+
+                        await musica.play();
+
+                    }
+                    catch (error) {
+
+                        console.log(
+                            "No se pudo iniciar música:",
+                            error
+                        );
+
+                    }
+
+
+                    try {
+
+                        visible.currentTime = 0;
+
+                        await visible.play();
+
+                    }
+                    catch (error) {
+
+                        console.log(
+                            "No se pudo iniciar video:",
+                            error
+                        );
+
+                    }
+
+
+                    return;
+                }
+
+
+                // =====================
+                // VIDEO TODAVÍA CORRE
+                // =====================
+
+                if (!terminado) {
+                    return;
+                }
+
+
+                // =====================
+                // YA ES EL ÚLTIMO
+                // =====================
+
+                if (indice >= videos.length - 1) {
+
+                    finalizado = true;
+                    return;
+
+                }
+
+
+                cambiando = true;
+                terminado = false;
+
+
+                // =====================
+                // ESPERAR SIGUIENTE
+                // =====================
+
+                if (precarga.readyState < 3) {
+
+                    await new Promise(resolve => {
+
+                        const listo = () => {
+
+                            precarga.removeEventListener(
+                                "canplay",
+                                listo
+                            );
+
+                            precarga.removeEventListener(
+                                "loadeddata",
+                                listo
+                            );
+
+                            resolve();
+
+                        };
+
+                        precarga.addEventListener(
+                            "canplay",
+                            listo,
+                            { once: true }
+                        );
+
+                        precarga.addEventListener(
+                            "loadeddata",
+                            listo,
+                            { once: true }
+                        );
+
+                    });
+
+                }
+
+
+                // =====================
+                // INICIAR SIGUIENTE
+                // AÚN OCULTO
+                // =====================
+
+                try {
+
+                    precarga.currentTime = 0;
+
+                    await precarga.play();
+
+                }
+                catch (error) {
+
+                    console.log(
+                        "Error reproduciendo siguiente:",
+                        error
+                    );
+
+                    cambiando = false;
+
+                    return;
+
+                }
+
+
+                // =====================
+                // TRANSICIÓN
+                // =====================
+
+                precarga.style.zIndex = "3";
+                visible.style.zIndex = "2";
+
+                precarga.style.opacity = "1";
+                visible.style.opacity = "0";
+
+
+                await new Promise(resolve => {
+                    setTimeout(resolve, 350);
+                });
+
+
+                // =====================
+                // CAMBIAR REFERENCIAS
+                // =====================
+
+                visible.removeEventListener(
+                    "ended",
+                    alTerminar
+                );
+
+
+                const anterior = visible;
+
+                visible = precarga;
+
+                precarga = anterior;
+
+
+                indice++;
+
+
+                visible.addEventListener(
+                    "ended",
+                    alTerminar
+                );
+
+
+                // =====================
+                // RESETEAR VIDEO VIEJO
+                // =====================
+
+                precarga.pause();
+
+                precarga.style.opacity = "0";
+                precarga.style.zIndex = "1";
+
+                visible.style.opacity = "1";
+                visible.style.zIndex = "2";
+
+
+                cambiando = false;
+
+
+                // =====================
+                // PRECARGAR PRÓXIMO
+                // =====================
+
+                prepararSiguiente();
+
+            }
+        );
+
+
+        // =========================
+        // ERRORES
+        // =========================
+
+        [visible, precarga].forEach(video => {
+
+            video.addEventListener(
+                "error",
+                () => {
+
+                    console.error(
+                        "Error cargando video:",
+                        video.src,
+                        video.error
+                    );
+
+                }
+            );
+
+        });
+
+    </script>
+
+</body>
+</html>
